@@ -1,47 +1,69 @@
 import {Webhook} from "svix"
 import connectDB from "../../../public/config/db"
 import User from "../../../models/user"
-import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 
 export async function POST(req) {
-    const wh = new Webhook(process.env.SIGNIN_SECRET)
-    const headerPayload = headers()
-    const svixHeader = {
-        "svix-id": headerPayload.get("svix-id"),
-        "svix-timestamp": headerPayload.get("svix-timestamp"),
-        "svix-signature": headerPayload.get("svix-signature")
-    };
+    try {
+        const wh = new Webhook(process.env.SIGNIN_SECRET)
+        
+        // Get headers directly from the request
+        const svixId = req.headers.get("svix-id")
+        const svixTimestamp = req.headers.get("svix-timestamp")
+        const svixSignature = req.headers.get("svix-signature")
 
-    // Get the payload and verify it
-    const payload = await req.json(); 
-    const body = JSON.stringify(payload);
-    const {data, type} = wh.verify(body, svixHeader)
+        // Check if all required headers are present
+        if (!svixId || !svixTimestamp || !svixSignature) {
+            console.error('Missing headers:', { svixId, svixTimestamp, svixSignature })
+            return NextResponse.json({ error: 'Missing required headers' }, { status: 400 })
+        }
 
-    // Prepare the data and save into the db
-    const userData = {
-        _id: data.id,
-        email: data.email_addresses[0].email_address,
-        name: `${data.first_name} ${data.last_name}`,
-        image: data.image_url,
-    };
+        // Get the payload
+        const payload = await req.json()
+        const body = JSON.stringify(payload)
 
-    await connectDB();
+        // Verify the webhook
+        const evt = wh.verify(body, {
+            "svix-id": svixId,
+            "svix-timestamp": svixTimestamp,
+            "svix-signature": svixSignature,
+        })
 
-    switch (type) {
-        case 'user.created':
-            await User.create(userData)
-            break;
-        case 'user.updated':
-            await User.findByIdAndUpdate(data.id, userData)
-            break;
-        case 'user.deleted':
-            await User.findByIdAndDelete(data.id)
-            break;
+        const { data, type } = evt
 
-        default:
-            break;
+        // Prepare the user data
+        const userData = {
+            _id: data.id,
+            email: data.email_addresses[0].email_address,
+            name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+            image: data.image_url || '',
+        }
+
+        // Connect to database
+        await connectDB()
+
+        // Handle different event types
+        switch (type) {
+            case 'user.created':
+                await User.create(userData)
+                console.log('✅ User created:', userData._id)
+                break
+            case 'user.updated':
+                await User.findByIdAndUpdate(data.id, userData)
+                console.log('✅ User updated:', userData._id)
+                break
+            case 'user.deleted':
+                await User.findByIdAndDelete(data.id)
+                console.log('✅ User deleted:', data.id)
+                break
+            default:
+                console.log('⚠️ Unhandled event type:', type)
+                break
+        }
+
+        return NextResponse.json({ message: 'Event received' })
+    } catch (error) {
+        console.error('❌ Webhook error:', error)
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
     }
-
-    return NextResponse.json({message: "Event received"})
 }
