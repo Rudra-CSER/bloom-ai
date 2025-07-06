@@ -9,12 +9,12 @@ export async function POST(req) {
     const headerPayload = await headers()
     const svixHeader = {
         "svix-id": headerPayload.get("svix-id"),
-        "svix-timestamp": headerPayload.get("svix-timestamp"),
+        "svix-timestamps": headerPayload.get("svix-timestamps"),
         "svix-signature": headerPayload.get("svix-signature")
     };
 
     // Get the payload and verify it
-    const payload = await req.json();
+    const payload = await req.json(); 
     const body = JSON.stringify(payload);
     const {data, type} = wh.verify(body, svixHeader)
 
