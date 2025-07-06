@@ -28,8 +28,8 @@ const {data , type } = wh.verify(body , svixHeader)
 
 const userData ={
     _id : data.id , 
-    email : data.email_address[0].email_address,
-    name : `${data.frist_name} ${data.lastname}`,
+    email : data.email_addresses[0].email_address,
+    name : `${data.first_name} ${data.last_name}`,
     image : data.image_url ,
 };
 
@@ -50,6 +50,6 @@ switch (type) {
         break;
 }
  
-return NextResponse.json({massage: "Event received"})
+return NextResponse.json({message: "Event received"})
 
 }

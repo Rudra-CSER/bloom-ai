@@ -1,6 +1,4 @@
 import mongoose from "mongoose";
-import { type } from "os";
-
 
 const UserSchema  = new mongoose.Schema( 
     {
@@ -10,7 +8,7 @@ const UserSchema  = new mongoose.Schema(
         image: {type: String  , required : false},
     },
     {
-        timeseries: true
+        timestamps: true
     }
 );
 
