@@ -10,7 +10,7 @@ export default async function connectDB(){
     try {
         cached.conn = await cached.promise
     } catch (error) {
-        console.log(`Sorry there was a Connection Error with your database! Reload the Website or wait for few hours: ${error}`);
+        console.log(`Sorry there was a Connection ${error}`);
         
     }
     return cached.conn
