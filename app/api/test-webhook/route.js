@@ -2,7 +2,7 @@ import connectDB from "../../../public/config/db";
 import User from "../../../models/user";
 import { NextResponse } from "next/server";
 
-export async function POST(req) {
+export async function POST() {
   try {
     console.log("Testing webhook-like user creation...");
     
