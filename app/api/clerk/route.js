@@ -10,7 +10,7 @@ export async function POST(req) {
     
     // Step 1: Setup webhook
     const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-    const headerPayload = await headers;
+    const headerPayload = headers();
     const svixHeaders = {
       "svix-id": headerPayload.get("svix-id"),
       "svix-signature": headerPayload.get("svix-signature"),
