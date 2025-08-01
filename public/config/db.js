@@ -6,11 +6,10 @@ export default async function connectDB() {
     if (cached.conn) return cached.conn
     
     if (!cached.promise) {
-        const opts = {
-            bufferCommands: false,
+      cached.promise = mongoose.connect();
         }
         
-        cached.promise = mongoose.connect(process.env.MONGODB_URI, opts)
+        cached.promise = mongoose.connect(process.env.MONGODB_URI).then((mongoose) => mongoose);
     }
     
     try {
@@ -23,4 +22,4 @@ export default async function connectDB() {
     }
     
     return cached.conn
-}
+

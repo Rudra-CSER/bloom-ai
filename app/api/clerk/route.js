@@ -36,7 +36,7 @@ export async function POST(req) {
     const body = JSON.stringify(payload);
     
     console.log("Webhook payload type:", payload.type);
-    console.log("Webhook data ID:", payload.data?.id);
+    console.log("Webhook data ID:", payload.data?.id); 
     
     // Verify webhook signature
     const { data, type } = wh.verify(body, svixHeaders);
