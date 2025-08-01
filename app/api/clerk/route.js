@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 export async function POST(req) {
   try {
     console.log("Webhook received - starting processing");
-    
+
     // Check if webhook secret exists
     if (!process.env.CLERK_WEBHOOK_SECRET) {
       console.error("CLERK_WEBHOOK_SECRET is not set");
@@ -19,7 +19,7 @@ export async function POST(req) {
 
     // Prepare and verify webhook
     const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-    const headerPayload = headers(); // Remove await - headers() is not async
+    const headerPayload = await headers();
     const svixHeaders = {
       "svix-id": headerPayload.get("svix-id"),
       "svix-signature": headerPayload.get("svix-signature"),
@@ -27,25 +27,28 @@ export async function POST(req) {
     };
 
     console.log("Headers received:", {
-      "svix-id": headerPayload.get("svix-id"),
-      "svix-signature": headerPayload.get("svix-signature") ? "present" : "missing",
-      "svix-timestamp": headerPayload.get("svix-timestamp")
+      "svix-id": svixHeaders["svix-id"],
+      "svix-signature": svixHeaders["svix-signature"] ? "present" : "missing",
+      "svix-timestamp": svixHeaders["svix-timestamp"]
     });
 
     const payload = await req.json();
     const body = JSON.stringify(payload);
-    
+
     console.log("Webhook payload type:", payload.type);
-    console.log("Webhook data ID:", payload.data?.id); 
-    
+    console.log("Webhook data ID:", payload.data?.id);
+
     // Verify webhook signature
     const { data, type } = wh.verify(body, svixHeaders);
     console.log("Webhook verified successfully, type:", type);
 
-    // Prepare user data
+    // Prepare user data with safe email extraction
     const userData = {
       _id: data.id,
-      email: data.email_addresses[0].email_address,
+      email:
+        Array.isArray(data.email_addresses) && data.email_addresses.length > 0
+          ? data.email_addresses[0].email_address
+          : "",
       name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
       image: data.image_url,
     };
@@ -60,8 +63,9 @@ export async function POST(req) {
     // Handle webhook event types
     if (type === "user.created") {
       console.log("Creating new user in database...");
-      const createdUser = await User.create(userData);
-      console.log("User created successfully:", createdUser._id);
+      // Use upsert to avoid duplicate key errors
+      await User.findByIdAndUpdate(data.id, userData, { upsert: true, new: true });
+      console.log("User created or updated successfully:", data.id);
     } else if (type === "user.updated") {
       console.log("Updating user in database...");
       const updatedUser = await User.findByIdAndUpdate(data.id, userData, { new: true });
